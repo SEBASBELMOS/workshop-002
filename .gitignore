@@ -1,10 +1,7 @@
-# Environment variables
 env/
 
-# Data files
 data/
 
-# Python cache and virtual envs
 __pycache__/
 venv/
 
