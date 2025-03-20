@@ -53,10 +53,10 @@ This project simulates a real-world Data Engineering task, focusing on building 
 | **data/**             | Dataset used in the project (ignored in .gitignore) |
 | **docs/**              | Documentation and workshop PDFs |
 | **notebooks/**        | Jupyter Notebooks with analysis |
-| ├── 00_grammys-raw-load.ipynb | Loads Grammys data into PostgreSQL  |  
-| ├── 01_Spotify-EDA.ipynb   | Exploratory Data Analysis of Spotify dataset    |  
-| ├── 02_Grammys-EDA.ipynb   | Exploratory Data Analysis of Grammys dataset    |  
-| ├── 03_data-pipeline.ipynb | ETL pipeline execution and merging    |
+| ├── 01_grammys-raw-load.ipynb | Loads Grammys data into PostgreSQL  |  
+| ├── 02_spotify-EDA.ipynb   | Exploratory Data Analysis of Spotify dataset    |  
+| ├── 03_grammys-EDA.ipynb   | Exploratory Data Analysis of Grammys dataset    |  
+| ├── 04_data-pipeline.ipynb | ETL pipeline execution and merging    |
 | **src/**                   | Python scripts for Airflow tasks and utilities   | 
 | **venv/**              | Environment variables (ignored in .gitignore) |
 | **README.md**         | This file |
@@ -72,8 +72,6 @@ This project simulates a real-world Data Engineering task, focusing on building 
 - **Environment:** Jupyter Notebook -> [VSCode tool used](https://code.visualstudio.com/docs/datascience/jupyter-notebooks)
 - **Storage:** Google Drive & PyDrive2 -> [Documentation here](https://docs.iterative.ai/PyDrive2/)
 
-All the libraries are included in the Poetry project config file (_pyproject.toml_).
-
 ---
 
 ## Installation and Setup
@@ -84,65 +82,7 @@ All the libraries are included in the Poetry project config file (_pyproject.tom
    cd workshop-002
    ```
 
-   2. **Installing the dependencies with _Poetry_**
-    - Windows: 
-        - In Powershell, execute this command: 
-            ```powershell
-            (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-            ```
-            <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/poetry_installation.png" width="600"/>
-        - Press Win + R, type _sysdm.cpl_, and press **Enter**. 
-        - Go to the _Advanced_ tab, select _environment variable_.
-        - Under System variables, select Path → Click Edit.
-        - Click _Edit_ and set the path provided during the installation in **PATH** so that the `poetry` command works. ("C:\Users\username\AppData\Roaming\Python\Scripts")
-        - Restart Powershell and execute _poetry --version_.
-
-        
-    - Linux
-        - In a terminal, execute this command:
-            ```bash
-            curl -sSL https://install.python-poetry.org | python3 -
-            ```
-            <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/poetry_linux.png" width="600"/>
-        -  Now, execute:
-            ```bash
-            export PATH = "/home/user/.locar/bin:$PATH"
-            ```
-        -Finally, restart the terminal and execute _poetry --version_.
-
-
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/poetry_linux_installed.png" width="400"/>
-
-3. **Poetry Shell**
-    - Enter the Poetry shell with _poetry shell_.
-    - Then, execute _poetry init_, it will create a file called _pyproject.toml_
-    - To add all the dependencies, execute this: 
-        ```bash
-        poetry add pandas matplotlib psycopg2-binary sqlalchemy python-dotenv seaborn ipykernel dotenv
-        ```
-    - Install the dependencies with: 
-        ```bash
-        poetry install
-        ```
-        In case of error with the .lock file, just execute _poetry lock_ to fix it.
-    - Create the kernel with this command (You must choose this kernel when running the notebooks):
-        ```bash
-        poetry run python -m ipykernel install --user --name workshop-002 --display-name "Python (workshop-002)"
-        ```
-
-4. **PostgreSQL Database**
-    - Install PostgreSQL with this [link here](https://www.postgresql.org/download/)
-    - Open a terminal and execute this command, If the **postgres** user has a password, you will be prompted to enter it: 
-        ```bash
-        psql -U postgres
-        ```
-    - Create a new database with this command:
-        ```bash 
-        CREATE DATABASE database_name;
-        ```
-    - This is the information you need to add to the _.env_ file in the next step.
-
-5. **Enviromental variables**
+2. **Enviromental variables**
     >Realise this in VS Code.
 
     To establish a connection with the database, we use a module called _connection.py_. This Python script retrieves a file containing our environment variables. Here’s how to create it:
@@ -150,14 +90,22 @@ All the libraries are included in the Poetry project config file (_pyproject.tom
     2. Within that directory, create a file called *.env*.
     3. In the *.env file*, define the following six environment variables (without double quotes around values):
         ```python
+        #PostgreSQL Variables
         PG_HOST = #host address, e.g. localhost or 127.0.0.1
         PG_PORT = #PostgreSQL port, e.g. 5432
 
         PG_USER = #your PostgreSQL user
         PG_PASSWORD = #your user password
         
-        PG_DRIVER = postgresql+psycopg2
         PG_DATABASE = #your database name, e.g. postgres
+
+        #Google Drive Variables
+        CLIENT_SECRETS_PATH = "/path/to/your/credentials/client_secrets.json"
+
+        SETTINGS_PATH = "/path/to/your/env/settings.yaml"
+
+        SAVED_CREDENTIALS_PATH = "/path/to/your/credentials/saved_credentials.json"
+        FOLDER_ID = # your-drive-folder-id
         ```
 
 ---
