@@ -1,4 +1,4 @@
-# How to create a PostgreSQL instance in Google Cloud <img src="https://yt3.googleusercontent.com/ytc/AIdro_n94STjDykDksYxhfE4RhM1BT4R2H69tIAHav8jrey03qQ=s900-c-k-c0x00ffffff-no-rj" alt="GCP" width="15px"/>
+# How to create a PostgreSQL instance in Google Cloud <img src="https://yt3.googleusercontent.com/ytc/AIdro_n94STjDykDksYxhfE4RhM1BT4R2H69tIAHav8jrey03qQ=s900-c-k-c0x00ffffff-no-rj" alt="GCP" width="25px"/>
 
 1. **Create an account in Google Cloud**
     - Log in or create a new account in Google Cloud, then create a project.
@@ -47,9 +47,9 @@
     - We need to provide these details:
         - Host: The server's public IP.
         - Port: 5432 (Default).
-        - Username: This is the username you selected in the configuration (If you chose to use the default, then it is `**postgres**`)
+        - Username: This is the username you selected in the configuration (If you chose to use the default, then it is **`postgres`**)
         - Password: The password you created in GCP for this instance.
-        - Database name: As we have not created a database you can test with the default database (`**postgres**`)
+        - Database name: As we have not created a database you can test with the default database (**`postgres`**)
 
             <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/db_test.png" width="300"/>
             <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/connection_successful.png" width="300"/>
