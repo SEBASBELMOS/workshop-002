@@ -1,4 +1,4 @@
-# How to create a PostgreSQL instance in Google Cloud <img src="https://yt3.googleusercontent.com/ytc/AIdro_n94STjDykDksYxhfE4RhM1BT4R2H69tIAHav8jrey03qQ=s900-c-k-c0x00ffffff-no-rj" alt="GCP" width="15px"/>
+# How to create a PostgreSQL instance in Google Cloud <img src="https://yt3.googleusercontent.com/ytc/AIdro_n94STjDykDksYxhfE4RhM1BT4R2H69tIAHav8jrey03qQ=s900-c-k-c0x00ffffff-no-rj" alt="GCP" width="25px"/>
 
 1. **Create an account in Google Cloud**
     - Log in or create a new account in Google Cloud, then create a project.

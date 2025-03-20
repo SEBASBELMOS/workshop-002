@@ -39,10 +39,6 @@ This project simulates a real-world Data Engineering task, focusing on building 
     - artist: Associated artist(s).
     - winner: Boolean indicating win (True/False).
 
-3. **API Data Source**
-- Source: User-selected (e.g., Spotify API).
-- Description: Additional data to enrich the pipeline (e.g., recent track data).
-
 
 ## Project Structure
 
