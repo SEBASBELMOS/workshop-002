@@ -73,7 +73,9 @@ This project simulates a real-world Data Engineering task, focusing on building 
 - **Storage:** Google Drive & PyDrive2 -> [Documentation here](https://docs.iterative.ai/PyDrive2/)
 
 ---
+## Workflow
 
+---
 ## Installation and Setup
 
 1. **Clone the Repository:**
@@ -82,28 +84,15 @@ This project simulates a real-world Data Engineering task, focusing on building 
    cd workshop-002
    ```
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
 2. **Enviromental variables**
-=======
->>>>>>> Stashed changes
+
 2. **Database Google Cloud Platform**
     > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 3. **Google Drive Auth**
-<<<<<<< Updated upstream
     > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 5. **Enviromental variables**
-=======
-    > To generate a *`client_secrets.json`* file, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
-
-4. **PyDrive2 Configuration - *`settings.yaml`***
-
-5. **Enviromental variables**
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     >Realise this in VS Code.
 
     To establish a connection with the database, we use a module called _connection.py_. This Python script retrieves a file containing our environment variables. Here’s how to create it:
