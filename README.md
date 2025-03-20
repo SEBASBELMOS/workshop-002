@@ -82,7 +82,13 @@ This project simulates a real-world Data Engineering task, focusing on building 
    cd workshop-002
    ```
 
-2. **Enviromental variables**
+2. **Database Google Cloud Platform**
+    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+
+3. **Google Drive Auth**
+    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+
+5. **Enviromental variables**
     >Realise this in VS Code.
 
     To establish a connection with the database, we use a module called _connection.py_. This Python script retrieves a file containing our environment variables. Here’s how to create it:
