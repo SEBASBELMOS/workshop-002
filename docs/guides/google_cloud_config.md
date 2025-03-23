@@ -6,8 +6,6 @@
 
 2. **Create a new instance using the Cloud SQL Console**
     - Open the navigation bar, then navigate to _SQL_ (You can also use the search bar and type _SQL_).
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/gcp_navigation.png" width="600"/>
-
 
         <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/gcp_navigation.png" width="200"/>
 
