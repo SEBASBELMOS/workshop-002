@@ -86,7 +86,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
     > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 3. **Google Drive Auth**
-    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
 
 5. **Enviromental variables**
     >Realise this in VS Code.
