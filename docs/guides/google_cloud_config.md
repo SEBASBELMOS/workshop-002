@@ -27,15 +27,15 @@
 
     - Configure the region and zone where you require your instance to be hosted.
 
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/region_gcp.png" width="600"/>
+        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/region_gcp.png" width="400"/>
         
     - Configure the machine type, specifications (memory, CPU) as you require.
 
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/machine_config_gcp.png" width="600"/>
+        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/machine_config_gcp.png" width="500"/>
 
     - You must add the IP `0.0.0.0/0` to the list of authorised networks in _Connections_.
 
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/ip_config_gcp.png" width="600"/>
+        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/ip_config_gcp.png" width="500"/>
     - After you have done that, you are ready to create it.
 
 4. **Connecting to the instance**
@@ -47,5 +47,4 @@
         - Username: This is the username you selected in the configuration (If you chose to use the default, then it is **`postgres`**)
         - Password: The password you created in GCP for this instance.
         - Database name: As we have not created a database you can test with the default database (**`postgres`**)
-
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/connection_successful.png" width="600"/>
+            <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/connection_successful.png" width="300"/>
