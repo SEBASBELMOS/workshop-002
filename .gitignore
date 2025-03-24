@@ -17,3 +17,5 @@ standalone_admin_password.txt
 webserver_config.py
 
 pbi/
+
+credentials/

@@ -54,7 +54,9 @@ This project simulates a real-world Data Engineering task, focusing on building 
 | ├── 03_grammys-EDA.ipynb   | Exploratory Data Analysis of Grammys dataset    |  
 | ├── 04_data-pipeline.ipynb | ETL pipeline execution and merging    |
 | **src/**                   | Python scripts for Airflow tasks and utilities   | 
-| **venv/**              | Environment variables (ignored in .gitignore) |
+| **venv/**              | Virtual environment (ignored in .gitignore) |
+| **env/**               | Environment variables (ignored in .gitignore) |
+| ├── .env                 |	Stores credentials and paths  |
 | **README.md**         | This file |
 
 ## Tools and Libraries
@@ -87,10 +89,18 @@ This project simulates a real-world Data Engineering task, focusing on building 
 2. **Database Google Cloud Platform**
     > To create the databases in GCP, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
-3. **Google Drive Auth**
-    > To create the Google Drive Authentication, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
+    - Use the `public IP` for connections, and ensure the IP `0.0.0.0/0` is added to authorised networks for testing.
 
-4. **Virtual Environment (This must be done in Ubuntu or WSL)**
+3. **Google Drive Auth**
+    > To create the Google Drive Authentication, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_drive_api.md)
+
+    - Ensure `PyDrive2` is installed as part of the dependencies (requirements.txt).
+
+4. **Configure PyDrive2 (_settings.yaml_)**
+
+    > To configure the `settings.yaml` file for authentication and authorisation, follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_drive_settings.md)
+
+5. **Virtual Environment (This must be done in Ubuntu or WSL)**
     - Create virtual environment.
         ```bash
         python3 -m venv venv
@@ -106,7 +116,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
         pip install -r requirements.txt 
         ```
 
-5. **Enviromental variables**
+6. **Enviromental variables**
     >Realise this in VS Code.
 
     To establish a connection with the database, we use a module called _connection.py_. This Python script retrieves a file containing our environment variables. Here’s how to create it:
@@ -132,6 +142,15 @@ This project simulates a real-world Data Engineering task, focusing on building 
         FOLDER_ID = # your-drive-folder-id
         ```
 
+7. **Set up Apache Airflow (Airflow setup must be done in a Linux environment)**
+
+    ```bash
+    export AIRFLOW_HOME="$(pwd)/airflow"
+    airflow standalone
+    ```
+    - Update _airflow.cfg_ to include the `src/` folder in _plugins_folder_.
+    - Access the GUI at [http://localhost:8080](http://localhost:8080).
+    - 
 
 ---
 
