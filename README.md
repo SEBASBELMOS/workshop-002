@@ -85,24 +85,20 @@ This project simulates a real-world Data Engineering task, focusing on building 
    ```
 
 2. **Database Google Cloud Platform**
-    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+    > To create the databases in GCP, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 3. **Google Drive Auth**
-    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
+    > To create the Google Drive Authentication, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
 
-4. **Virtual Environment**
-    - Create virtual environment
+4. **Virtual Environment (This must be done in Ubuntu or WSL)**
+    - Create virtual environment.
         ```bash
-        python -m venv venv
+        python3 -m venv venv
         ```
 
-    - Activate it
+    - Activate it using this command:
         ```bash
         source venv/bin/activate 
-        ```
-    If it does not work, run this command:
-        ```bash
-        .\venv\Scripts\activate 
         ```
 
     - Install all the requirements and libraries with this command:
