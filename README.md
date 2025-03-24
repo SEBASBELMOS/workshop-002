@@ -69,10 +69,13 @@ This project simulates a real-world Data Engineering task, focusing on building 
 - **Storage:** Google Drive & PyDrive2 -> [Documentation here](https://docs.iterative.ai/PyDrive2/)
 
 ---
+
 ## Workflow
 
-<img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/workflow.png" width="700"/>
+<img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/workflow.png" width="800"/>
+
 ---
+
 ## Installation and Setup
 
 1. **Clone the Repository:**
@@ -81,13 +84,31 @@ This project simulates a real-world Data Engineering task, focusing on building 
    cd workshop-002
    ```
 
-2. **Enviromental variables**
-
 2. **Database Google Cloud Platform**
     > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 3. **Google Drive Auth**
     > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
+
+4. **Virtual Environment**
+    - Create virtual environment
+        ```bash
+        python -m venv venv
+        ```
+
+    - Activate it
+        ```bash
+        source venv/bin/activate 
+        ```
+    If it does not work, run this command:
+        ```bash
+        .\venv\Scripts\activate 
+        ```
+
+    - Install all the requirements and libraries with this command:
+        ```bash
+        pip install -r requirements.txt 
+        ```
 
 5. **Enviromental variables**
     >Realise this in VS Code.
@@ -114,6 +135,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
         SAVED_CREDENTIALS_PATH = "/path/to/your/credentials/saved_credentials.json"
         FOLDER_ID = # your-drive-folder-id
         ```
+
 
 ---
 
