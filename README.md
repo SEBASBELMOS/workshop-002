@@ -71,6 +71,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
 ---
 ## Workflow
 
+<img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/workflow.png" width="400"/>
 ---
 ## Installation and Setup
 
