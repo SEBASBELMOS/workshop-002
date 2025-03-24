@@ -47,4 +47,5 @@
         - Username: This is the username you selected in the configuration (If you chose to use the default, then it is **`postgres`**)
         - Password: The password you created in GCP for this instance.
         - Database name: As we have not created a database you can test with the default database (**`postgres`**)
+
             <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/connection_successful.png" width="300"/>
