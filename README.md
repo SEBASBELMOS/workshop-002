@@ -69,14 +69,14 @@ This project simulates a real-world Data Engineering task, focusing on building 
 - **Storage:** Google Drive & PyDrive2 -> [Documentation here](https://docs.iterative.ai/PyDrive2/)
 
 ---
-## Workflow / Pipeline
 
-<img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/workflow.png" width="500"/>
+## Workflow
+
+<img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/workflow.png" width="800"/>
 
 ---
-## Installation and Setup
 
-> Warning: This project was built using a Unix OS / WSL, take this into account.
+## Installation and Setup
 
 1. **Clone the Repository:**
    ```bash
@@ -84,13 +84,27 @@ This project simulates a real-world Data Engineering task, focusing on building 
    cd workshop-002
    ```
 
-2. **Enviromental variables**
-
 2. **Database Google Cloud Platform**
-    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+    > To create the databases in GCP, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
 
 3. **Google Drive Auth**
-    > To create it, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_config.md)
+    > To create the Google Drive Authentication, you can follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/google_cloud_api.md)
+
+4. **Virtual Environment (This must be done in Ubuntu or WSL)**
+    - Create virtual environment.
+        ```bash
+        python3 -m venv venv
+        ```
+
+    - Activate it using this command:
+        ```bash
+        source venv/bin/activate 
+        ```
+
+    - Install all the requirements and libraries with this command:
+        ```bash
+        pip install -r requirements.txt 
+        ```
 
 5. **Enviromental variables**
     >Realise this in VS Code.
@@ -117,5 +131,12 @@ This project simulates a real-world Data Engineering task, focusing on building 
         SAVED_CREDENTIALS_PATH = "/path/to/your/credentials/saved_credentials.json"
         FOLDER_ID = # your-drive-folder-id
         ```
+
+
+---
+
+
+## **Author**  
+Created by **Sebastian Belalcazar Mosquera**. Connect with me on [LinkedIn](https://www.linkedin.com/in/sebasbelmos/) for feedback, suggestions, or collaboration opportunities!
 
 ---
