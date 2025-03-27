@@ -103,12 +103,12 @@ This project simulates a real-world Data Engineering task, focusing on building 
 5. **Virtual Environment (This must be done in Ubuntu or WSL)**
     - Create virtual environment.
         ```bash
-        python3 -m venv venv
+        python3 -m venv workshop2
         ```
 
     - Activate it using this command:
         ```bash
-        source venv/bin/activate 
+        source workshop2/bin/activate 
         ```
 
     - Install all the requirements and libraries with this command:
@@ -127,18 +127,21 @@ This project simulates a real-world Data Engineering task, focusing on building 
         #PostgreSQL Variables
         PG_HOST = #host address, e.g. localhost or 127.0.0.1
         PG_PORT = #PostgreSQL port, e.g. 5432
-
         PG_USER = #your PostgreSQL user
         PG_PASSWORD = #your user password
-        
         PG_DATABASE = #your database name, e.g. postgres
 
         #Google Drive Variables
+        #Path to the client secrets file used for Google Drive authentication.
         CLIENT_SECRETS_PATH = "/path/to/your/credentials/client_secrets.json"
 
+        #Path to the settings file for the application configuration.
         SETTINGS_PATH = "/path/to/your/env/settings.yaml"
 
+        #Path to the file where Google Drive saved credentials are stored.
         SAVED_CREDENTIALS_PATH = "/path/to/your/credentials/saved_credentials.json"
+
+        #The ID of your Google Drive folder. This can be found in the link in your folder.
         FOLDER_ID = # your-drive-folder-id
         ```
 
@@ -150,7 +153,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
     ```
     - Update _airflow.cfg_ to include the `src/` folder in _plugins_folder_.
     - Access the GUI at [http://localhost:8080](http://localhost:8080).
-    - 
+    - Finally, you must run the DAG.
 
 ---
 
