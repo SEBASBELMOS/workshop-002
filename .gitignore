@@ -6,9 +6,7 @@ __pycache__/
 
 venv/
 
-# Poetry
-pyproject.toml
-poetry.lock
+.venv/
 
 # Airflow
 airflow*.*
@@ -19,3 +17,5 @@ webserver_config.py
 pbi/
 
 credentials/
+
+None

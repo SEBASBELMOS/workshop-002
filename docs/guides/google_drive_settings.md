@@ -84,4 +84,4 @@ We will require this file in order to store the OAuth credentials from Google an
 
 Make sure you replace the values: `client_id`, `project_id`, `client_secret` and if necessary, `redirect_uris` but with this one, you will need at least one pointing to the local server.
 
-> This file must be located in the env/ directory.
+> These files must be located in the env/ directory.

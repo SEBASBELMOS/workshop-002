@@ -1,40 +1,118 @@
 import os
 import logging
+from typing import Any, Optional, Union
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, inspect, BigInteger, Boolean, Integer, Float, String, Text, DateTime, MetaData, Table, Column
+from sqlalchemy import (
+    create_engine, inspect, BigInteger, Boolean, Integer, Float,
+    String, Text, DateTime, MetaData, Table, Column
+)
+from sqlalchemy.engine import Engine
 from sqlalchemy_utils import database_exists, create_database
 import pandas as pd
+from pathlib import Path
 
-#Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#Load environment variables
-load_dotenv("../env/.env")
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+ENV_FILE = PROJECT_ROOT / "env" / ".env"
 
-user = os.getenv("PG_USER")
-password = os.getenv("PG_PASSWORD")
-host = os.getenv("PG_HOST")
-port = os.getenv("PG_PORT")
-database = os.getenv("PG_DATABASE")
+if not ENV_FILE.exists():
+    raise FileNotFoundError(f"Environment file not found at {ENV_FILE}")
 
-def create_gcp_engine():
-    url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+load_dotenv(ENV_FILE)
+
+def get_env_var(name: str) -> str:
+    """
+    Retrieves and validates an environment variable.
+    
+    Args:
+        name (str): Name of the environment variable
+        
+    Returns:
+        str: Value of the environment variable
+        
+    Raises:
+        ValueError: If the environment variable is not set
+    """
+    value = os.getenv(name)
+    if value is None:
+        raise ValueError(f"Environment variable {name} is not set in {ENV_FILE}")
+    return value
+
+DB_CONFIG = {
+    "user": get_env_var("PG_USER"),
+    "password": get_env_var("PG_PASSWORD"),
+    "host": get_env_var("PG_HOST"),
+    "port": get_env_var("PG_PORT"),
+    "database": get_env_var("PG_DATABASE")
+}
+
+try:
+    port_num = int(DB_CONFIG["port"])
+    if not (1 <= port_num <= 65535):
+        raise ValueError(f"Invalid port number: {port_num}")
+except ValueError as e:
+    raise ValueError(f"Invalid port number in environment variables: {DB_CONFIG['port']}") from e
+
+
+def create_gcp_engine() -> Engine:
+    """
+    Creates a database engine using environment variables.
+    
+    This function initialises a connection to the PostgreSQL database using
+    credentials stored in environment variables.
+    
+    Returns:
+        Engine: SQLAlchemy database engine instance
+        
+    Raises:
+        Exception: If there is an error creating the database engine
+    """
     try:
-        engine = create_engine(url)
-        logger.info("Successfully created GCP database engine")
+        db_url = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+        
+        engine = create_engine(db_url)
+        logging.info("Database engine created successfully.")
         return engine
+        
     except Exception as e:
-        logger.error(f"Failed to create GCP database engine: {str(e)}")
+        logging.error(f"Error creating database engine: {str(e)}")
         raise
 
 
-def dispose_engine(engine):
-    engine.dispose()
-    logging.info("Engine disposed.")
+def dispose_engine(engine: Engine) -> None:
+    """
+    Disposes of the database engine.
+    
+    This function properly closes and cleans up the database connection.
+    
+    Args:
+        engine (Engine): SQLAlchemy database engine to dispose
+        
+    Raises:
+        Exception: If there is an error disposing of the engine
+    """
+    try:
+        engine.dispose()
+        logging.info("Database engine disposed successfully.")
+    except Exception as e:
+        logging.error(f"Error disposing database engine: {str(e)}")
+        raise
 
 
-def infer_types(dtype, column_name, df):
+def infer_types(dtype: Any, column_name: str, df: pd.DataFrame) -> Union[Integer, Float, String, Text, DateTime, Boolean]:
+    """
+    Infers the appropriate SQLAlchemy type for a DataFrame column.
+    
+    Args:
+        dtype (Any): Pandas dtype of the column
+        column_name (str): Name of the column
+        df (pd.DataFrame): DataFrame containing the column
+        
+    Returns:
+        Union[Integer, Float, String, Text, DateTime, Boolean]: SQLAlchemy type
+    """
     if "int" in dtype.name:
         return Integer
     elif "float" in dtype.name:
@@ -54,40 +132,76 @@ def infer_types(dtype, column_name, df):
         return Text
 
 
-def load_data_raw(engine, df, table_name):
+def load_data_raw(engine: Engine, df: pd.DataFrame, table_name: str, schema: str = "raw") -> None:
+    """
+    Loads raw data from a DataFrame into a database table.
     
-    logging.info(f"Creating table {table_name} from Pandas DataFrame.")
+    This function creates or replaces a table with the raw data from the DataFrame.
+    No type inference or schema validation is performed.
+    
+    Args:
+        engine (Engine): SQLAlchemy database engine
+        df (pd.DataFrame): DataFrame containing the data to load
+        table_name (str): Name of the table to create or replace
+        
+    Raises:
+        Exception: If there is an error creating or loading the table
+    """
+    logging.info(f"Creating table {schema}.{table_name} from Pandas DataFrame.")
     
     try:   
-        df.to_sql(table_name, con=engine, if_exists="replace", index=False)
-    
-        logging.info(f"Table {table_name} was created successfully.")
+        with engine.connect() as conn:
+            df.to_sql(table_name, con=conn, schema=schema, if_exists="replace", index=False)
+            logging.info(f"Table {schema}.{table_name} was created successfully.")
     
     except Exception as e:
-        logging.error(f"Error creating table {table_name}: {e}")
+        logging.error(f"Error creating table {schema}.{table_name}: {str(e)}")
+        raise
 
 
-def load_data_clean(engine, df, table_name):
+def load_data_clean(engine: Engine, df: pd.DataFrame, table_name: str, schema: str = "merged") -> None:
+    """
+    Loads cleaned data from a DataFrame into a database table.
     
-    logging.info(f"Creating table {table_name} from Pandas DataFrame.")
+    This function creates a table with appropriate column types if it doesn't exist,
+    then loads the data. It performs type inference and schema validation.
+    
+    Args:
+        engine (Engine): SQLAlchemy database engine
+        df (pd.DataFrame): DataFrame containing the cleaned data to load
+        table_name (str): Name of the table to create or update
+        
+    Raises:
+        Exception: If there is an error creating or loading the table
+    """
+    logging.info(f"Creating table {schema}.{table_name} from Pandas DataFrame.")
     
     try:
-        if not inspect(engine).has_table(table_name):
+        if not inspect(engine).has_table(table_name, schema=schema):
             metadata = MetaData()
-            columns = [Column(name,
-                            infer_types(dtype, name, df),
-                            primary_key=(name == "id")) \
-                                for name, dtype in df.dtypes.items()]
+            columns = [
+                Column(
+                    name,
+                    infer_types(dtype, name, df),
+                    primary_key=(name == "id")
+                )
+                for name, dtype in df.dtypes.items()
+            ]
             
-            table = Table(table_name, metadata, *columns)
+            table = Table(table_name, metadata, *columns, schema=schema)
             table.create(engine)
             
-            logging.info(f"Table {table_name} was created successfully.")
+            logging.info(f"Table {schema}.{table_name} was created successfully.")
 
-            df.to_sql(table_name, con=engine, if_exists="append", index=False)
-
-            logging.info(f"Data loaded to table {table_name}.")
+            with engine.connect() as conn:
+                df.to_sql(table_name, con=conn, schema=schema, if_exists="append", index=False)
+                logging.info(f"Data loaded to table {schema}.{table_name}.")
         else:
-            logging.error(f"Table {table_name} already exists.")
+            logging.error(f"Table {schema}.{table_name} already exists.")
+            raise ValueError(f"Table {schema}.{table_name} already exists. Use load_data_raw to replace it.")
+        
+        return df
+            
     except Exception as e:
-        logging.error(f"Error creating table {table_name}: {e}")
+        logging.error(f"Error creating table {schema}.{table_name}: {str(e)}")
+        raise
