@@ -31,7 +31,7 @@ with DAG(
     default_args=default_args,
     description='ETL pipeline for Spotify and Grammy Awards data',
     schedule_interval=timedelta(days=1),
-    start_date=datetime(2025, 3, 29),
+    start_date=datetime(2025, 4, 5),
     catchup=False,
     tags=['etl', 'spotify', 'grammys']
 ) as dag:
