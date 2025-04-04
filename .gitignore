@@ -1,7 +1,5 @@
 env/
 
-data/
-
 __pycache__/
 
 venv/
@@ -19,3 +17,7 @@ pbi/
 credentials/
 
 None
+
+data/
+
+data
