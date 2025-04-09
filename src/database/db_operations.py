@@ -14,13 +14,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-ENV_FILE = PROJECT_ROOT / "env" / ".env"
-
-if not ENV_FILE.exists():
-    raise FileNotFoundError(f"Environment file not found at {ENV_FILE}")
-
-load_dotenv(ENV_FILE)
+load_dotenv("/opt/airflow/.env")
 
 def get_env_var(name: str) -> str:
     """
@@ -37,7 +31,7 @@ def get_env_var(name: str) -> str:
     """
     value = os.getenv(name)
     if value is None:
-        raise ValueError(f"Environment variable {name} is not set in {ENV_FILE}")
+        raise ValueError(f"Environment variable {name} is not set")
     return value
 
 DB_CONFIG = {

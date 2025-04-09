@@ -1,4 +1,5 @@
 env/
+.env
 
 __pycache__/
 
@@ -15,9 +16,8 @@ webserver_config.py
 pbi/
 
 credentials/
+drive_config/
 
 None
 
 data/
-
-data
