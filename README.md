@@ -143,6 +143,10 @@ This project simulates a real-world Data Engineering task, focusing on building 
 
         #The ID of your Google Drive folder. This can be found in the link in your folder.
         FOLDER_ID = # your-drive-folder-id
+
+        SPOTIFY_CLIENT_ID=client_id
+
+        SPOTIFY_CLIENT_SECRET=client_secret
         ```
 
 7. **Set up Apache Airflow (Airflow setup must be done in a Linux environment)**

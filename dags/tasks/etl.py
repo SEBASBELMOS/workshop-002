@@ -29,6 +29,8 @@ from src.transform.grammys_transform import transform_grammys_data
 from src.transform.merge import merge_data as merge_data_func
 from src.load_store.load import load_data as load_data_func
 from src.load_store.store import store_merged_data as store_data_func
+from src.extract.extract_api import extract_spotify_api_data
+from src.transform.transform_api import transform_spotify_api_data
 
 load_dotenv("/opt/airflow/.env")
 
@@ -121,6 +123,17 @@ def extract_spotify():
         logger.error(f"Error extracting Spotify data: {e}", exc_info=True)
         raise
 
+def extract_spotify_api():
+    logger.info("DEBUG: extract_spotify() called")
+    try:
+        df = extract_spotify_api_data(artist_name="The Beatles")
+        if df.empty:
+            raise ValueError("No data extracted from Spotify API")
+        return df.to_json(orient="records")
+    except Exception as e:
+        logger.error(f"Error extracting Spotify data: {e}", exc_info=True)
+        raise
+
 def extract_grammys():
     logger.info("DEBUG: extract_grammys() called")
     try:
@@ -164,6 +177,28 @@ def transform_spotify(df):
         logger.error(f"Error transforming Spotify data: {e}", exc_info=True)
         raise
 
+def transform_spotify_api(df):
+    logger.info("DEBUG: transform_spotify() called")
+    try:
+        logger.info(f"Received Spotify data for transformation: {df[:100]}...")
+        logger.info("Transforming Spotify data")
+        json_df = json.loads(df)
+        raw_df = pd.DataFrame(json_df)
+        transformed_data = transform_spotify_api_data(raw_df)
+        json_data = transformed_data
+        try:
+            if isinstance(json_data, pd.DataFrame):
+                json_data = json_data.to_json(orient="records")
+            json_parsed = json.loads(json_data)
+            logger.info(f"Transformed Spotify data with {len(json_parsed)} rows")
+            logger.info(f"Transformed Spotify sample data:\n{pd.DataFrame(json_parsed).head(2).to_string()}")
+        except Exception as e:
+            logger.info(f"Transformed Spotify data successfully, but couldn't parse JSON: {e}")
+        return json_data
+    except Exception as e:
+        logger.error(f"Error transforming Spotify data: {e}", exc_info=True)
+        raise
+
 def transform_grammys(df):
     logger.info("DEBUG: transform_grammys() called")
     try:
@@ -186,17 +221,26 @@ def transform_grammys(df):
         logger.error(f"Error transforming Grammy Awards data: {e}", exc_info=True)
         raise
 
-def merge_data(spotify_df, grammys_df):
+def merge_data(spotify_df, grammys_df, spotify_api_df=None):
     logger.info("DEBUG: merge_data() called")
     try:
         logger.info(f"Received Spotify data for merging: {spotify_df[:100]}...")
         logger.info(f"Received Grammy data for merging: {grammys_df[:100]}...")
+        if spotify_api_df:
+            logger.info(f"Received Spotify API data for merging: {spotify_api_df[:100]}...")
         logger.info("Merging Spotify and Grammy Awards data")
         spotify_json = json.loads(spotify_df)
         grammys_json = json.loads(grammys_df)
         spotify_df = pd.DataFrame(spotify_json)
         grammys_df = pd.DataFrame(grammys_json)
-        merged_data = merge_data_func(spotify_df, grammys_df)
+        
+        if spotify_api_df:
+            spotify_api_json = json.loads(spotify_api_df)
+            spotify_api_df = pd.DataFrame(spotify_api_json)
+            merged_data = merge_data_func(spotify_df, grammys_df, spotify_api_df)
+        else:
+            merged_data = merge_data_func(spotify_df, grammys_df)
+            
         if isinstance(merged_data, pd.DataFrame):
             merged_data = merged_data.to_json(orient="records")
         try:

@@ -17,3 +17,34 @@ The app provides, among others, the _Client ID_ and _Client Secret_ needed to im
 3. Enter the app details of your choice, accept the _Developer Terms of Service_, then click on CREATE.
 
     <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/createappdialog.png" width="400"/>
+
+4. Afterwards, you will see this screen with your Client ID and secret (Save them and add them in your .env).
+
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/info_api.png" width="400"/>
+
+    ```python
+        #PostgreSQL Variables
+        PG_HOST = #host address, e.g. localhost or 127.0.0.1
+        PG_PORT = #PostgreSQL port, e.g. 5432
+        PG_USER = #your PostgreSQL user
+        PG_PASSWORD = #your user password
+        PG_DATABASE = #your database name, e.g. postgres
+
+        #Google Drive Variables
+        #Path to the client secrets file used for Google Drive authentication.
+        CLIENT_SECRETS_PATH = "/path/to/your/credentials/client_secrets.json"
+
+        #Path to the settings file for the application configuration.
+        SETTINGS_PATH = "/path/to/your/env/settings.yaml"
+
+        #Path to the file where Google Drive saved credentials are stored.
+        SAVED_CREDENTIALS_PATH = "/path/to/your/credentials/saved_credentials.json"
+
+        #The ID of your Google Drive folder. This can be found in the link in your folder.
+        FOLDER_ID = # your-drive-folder-id
+
+        SPOTIFY_CLIENT_ID=client_id
+
+        SPOTIFY_CLIENT_SECRET=client_secret
+        ```
+

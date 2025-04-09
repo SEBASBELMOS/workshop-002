@@ -33,7 +33,9 @@ from tasks.etl import (
     transform_grammys,
     merge_data,
     load_data,
-    store_data
+    store_data,
+    extract_spotify_api,
+    transform_spotify_api
 )
 
 def execute_extract_grammys():
@@ -99,6 +101,18 @@ with DAG(
         retry_delay=timedelta(minutes=5),
     )
 
+    extract_spotify_api_task = PythonOperator(
+        task_id='extract_spotify_api',
+        python_callable=extract_spotify_api,
+        provide_context=True,
+        owner='sebasbelmos',
+        depends_on_past=False,
+        email_on_failure=False,
+        email_on_retry=False,
+        retries=1,
+        retry_delay=timedelta(minutes=5),
+    )
+
     extract_grammys_task = PythonOperator(
         task_id='extract_grammys',
         python_callable=execute_extract_grammys,
@@ -115,6 +129,19 @@ with DAG(
         task_id='transform_spotify',
         python_callable=transform_spotify,
         op_args=['{{ ti.xcom_pull(task_ids="extract_spotify") }}'],
+        provide_context=True,
+        owner='sebasbelmos',
+        depends_on_past=False,
+        email_on_failure=False,
+        email_on_retry=False,
+        retries=1,
+        retry_delay=timedelta(minutes=5),
+    )
+
+    transform_spotify_api_task = PythonOperator(
+        task_id='transform_spotify_api',
+        python_callable=transform_spotify_api,
+        op_args=['{{ ti.xcom_pull(task_ids="extract_spotify_api") }}'],
         provide_context=True,
         owner='sebasbelmos',
         depends_on_past=False,
@@ -142,7 +169,8 @@ with DAG(
         python_callable=merge_data,
         op_args=[
             '{{ ti.xcom_pull(task_ids="transform_spotify") }}',
-            '{{ ti.xcom_pull(task_ids="transform_grammys") }}'
+            '{{ ti.xcom_pull(task_ids="transform_grammys") }}',
+            '{{ ti.xcom_pull(task_ids="transform_spotify_api") }}'
         ],
         provide_context=True,
         owner='sebasbelmos',
@@ -179,12 +207,13 @@ with DAG(
         retry_delay=timedelta(minutes=5),
     )
 
-    # Updated dependencies
     create_schemas_task >> load_grammys_csv_task
     create_schemas_task >> extract_spotify_task
+    create_schemas_task >> extract_spotify_api_task
     load_grammys_csv_task >> extract_grammys_task
     extract_spotify_task >> transform_spotify_task
+    extract_spotify_api_task >> transform_spotify_api_task
     extract_grammys_task >> transform_grammys_task
-    [transform_spotify_task, transform_grammys_task] >> merge_data_task
+    [transform_spotify_task, transform_grammys_task, transform_spotify_api_task] >> merge_data_task
     merge_data_task >> load_data_task
     load_data_task >> store_data_task

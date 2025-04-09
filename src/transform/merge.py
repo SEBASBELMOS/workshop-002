@@ -36,17 +36,18 @@ def drop_columns(df: pd.DataFrame, columns: List[str]) -> None:
     df.drop(columns=columns, inplace=True, errors="ignore")
     
 
-def merge_data(spotify_df: Union[pd.DataFrame, str], grammys_df: Union[pd.DataFrame, str]) -> Optional[str]:
+def merge_data(spotify_df: Union[pd.DataFrame, str], grammys_df: Union[pd.DataFrame, str], spotify_api_df: Union[pd.DataFrame, str] = None) -> Optional[str]:
     """
-    Merges the Spotify and Grammys datasets based on "track_name" and "nominee".
+    Merges the Spotify, Grammys, and Spotify API datasets based on "track_name" and "nominee".
     
-    This function combines the Spotify and Grammys datasets using a left join,
+    This function combines the Spotify, Grammys, and Spotify API datasets using a left join,
     cleaning and standardising the data in the process. It handles both DataFrame
     and JSON string inputs, and returns the merged result as a JSON string.
     
     Args:
         spotify_df (Union[pd.DataFrame, str]): Spotify dataset as DataFrame or JSON string
         grammys_df (Union[pd.DataFrame, str]): Grammys dataset as DataFrame or JSON string
+        spotify_api_df (Union[pd.DataFrame, str], optional): Spotify API dataset as DataFrame or JSON string
         
     Returns:
         Optional[str]: Merged DataFrame as JSON string or None if error occurs
@@ -68,6 +69,14 @@ def merge_data(spotify_df: Union[pd.DataFrame, str], grammys_df: Union[pd.DataFr
             except json.JSONDecodeError as e:
                 logging.error(f"Invalid JSON string provided for Grammys data: {str(e)}")
                 return None
+
+        if spotify_api_df is not None:
+            if isinstance(spotify_api_df, str):
+                try:
+                    spotify_api_df = pd.DataFrame(json.loads(spotify_api_df))
+                except json.JSONDecodeError as e:
+                    logging.error(f"Invalid JSON string provided for Spotify API data: {str(e)}")
+                    return None
 
         if spotify_df.empty or grammys_df.empty:
             raise ValueError("One or both input DataFrames are empty")
@@ -97,6 +106,18 @@ def merge_data(spotify_df: Union[pd.DataFrame, str], grammys_df: Union[pd.DataFr
             right_on="nominee_clean",
             suffixes=("", "_grammys")
         )
+
+        if spotify_api_df is not None and not spotify_api_df.empty:
+            logging.info(f"Spotify API dataset has {spotify_api_df.shape[0]} rows and {spotify_api_df.shape[1]} columns.")
+            spotify_api_df["track_name_clean"] = spotify_api_df["track_name"].str.lower().str.strip()
+            
+            df_merged = df_merged.merge(
+                spotify_api_df,
+                how="left",
+                left_on="track_name_clean",
+                right_on="track_name_clean",
+                suffixes=("", "_api")
+            )
 
         fill_columns = ["title", "category"]
         fill_null_values(df_merged, fill_columns, "Not applicable")
