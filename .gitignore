@@ -4,16 +4,17 @@ env/
 __pycache__/
 
 venv/
-
 .venv/
 
 # Airflow
+airflow
 airflow*.*
 logs/
 standalone_admin_password.txt
 webserver_config.py
 
 pbi/
+config/
 
 credentials/
 drive_config/
