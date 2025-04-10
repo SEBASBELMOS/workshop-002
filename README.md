@@ -1,4 +1,4 @@
-# Workshop-002: Data Engineer 💻
+# Workshop-002: ETL process using airflow 💻
 
 ## Overview  
 This project simulates a real-world Data Engineering task, focusing on building an **ETL pipeline** using **Apache Airflow**. The objective is to:  
@@ -203,7 +203,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
 
 5. After establishing the connection, the tables of your db will be displayed. You need to select the ones you need, and then start creating your own dashboards.
 
-- Open my Power BI Visualisation [here]()
+- Open my Power BI Visualisation [here](https://app.powerbi.com/links/9WTfzzj7fp?ctid=693cbea0-4ef9-4254-8977-76e05cb5f556&pbi_source=linkShare)
 
 ---
 
