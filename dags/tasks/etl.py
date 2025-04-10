@@ -34,10 +34,7 @@ from src.transform.transform_api import transform_spotify_api_data
 
 load_dotenv("/opt/airflow/.env")
 
-def create_schemas():
-    """
-    Create the required schemas (raw, staging, processed) in the database if they don't exist.
-    """
+def create_schemas(**context):
     logger.info("DEBUG: create_schemas() called")
     try:
         db_user = os.getenv("PG_USER")
@@ -65,10 +62,7 @@ def create_schemas():
         logger.error(f"Error creating schemas: {e}", exc_info=True)
         raise
 
-def load_grammys_csv_to_db():
-    """
-    Load the_grammy_awards.csv into the raw.grammy_awards table in the database.
-    """
+def load_grammys_csv_to_db(**context):
     logger.info("DEBUG: load_grammys_csv_to_db() called")
     try:
         file_path = "/opt/airflow/data/the_grammy_awards.csv"
@@ -108,7 +102,7 @@ def load_grammys_csv_to_db():
         logger.error(f"Error loading Grammy Awards data into database: {e}", exc_info=True)
         raise
 
-def extract_spotify():
+def extract_spotify(**context):
     logger.info("DEBUG: extract_spotify() called")
     try:
         file_path = "/opt/airflow/data/spotify_dataset.csv"
@@ -123,18 +117,26 @@ def extract_spotify():
         logger.error(f"Error extracting Spotify data: {e}", exc_info=True)
         raise
 
-def extract_spotify_api():
-    logger.info("DEBUG: extract_spotify() called")
+def extract_spotify_api(**context):
+    logger.info("DEBUG: extract_spotify_api() called")
     try:
-        df = extract_spotify_api_data(artist_name="The Beatles")
-        if df.empty:
-            raise ValueError("No data extracted from Spotify API")
-        return df.to_json(orient="records")
+        artist_names = context['ti'].xcom_pull(key='grammy_artists', task_ids='extract_grammys')
+        logger.info(f"Pulled artist names from XCom: {artist_names[:5] if artist_names else 'None'}")
+        if not artist_names:
+            raise ValueError("No artist names received from extract_grammys task")
+        
+        artist_df = extract_spotify_api_data(artist_names=artist_names)
+        if artist_df.empty:
+            raise ValueError("No artist data extracted from Spotify API")
+        
+        context['ti'].xcom_push(key='artist_data', value=artist_df.to_json(orient="records"))
+        logger.info("Pushed artist_data to XCom")
+        return artist_df.to_json(orient="records")
     except Exception as e:
-        logger.error(f"Error extracting Spotify data: {e}", exc_info=True)
+        logger.error(f"Error extracting Spotify API data: {e}", exc_info=True)
         raise
 
-def extract_grammys():
+def extract_grammys(**context):
     logger.info("DEBUG: extract_grammys() called")
     try:
         logger.info("Extracting Grammy Awards data from database")
@@ -148,6 +150,19 @@ def extract_grammys():
         if df.empty:
             raise ValueError("No data extracted from Grammy Awards database")
         
+        possible_artist_cols = ['artist', 'nominee', 'artist_name', 'performer']
+        artist_col = next((col for col in possible_artist_cols if col in df.columns), None)
+        if not artist_col:
+            raise KeyError("No artist column found in Grammy data; tried 'artist', 'nominee', 'artist_name', 'performer'")
+        
+        artist_names = df[artist_col].dropna().unique().tolist()
+        logger.info(f"Extracted {len(artist_names)} unique artist names from Grammy data")
+        logger.info(f"Sample artist names: {artist_names[:5]}")
+        
+        context['ti'].xcom_push(key='grammy_artists', value=artist_names)
+        logger.info("Pushed grammy_artists to XCom")
+        
+        logger.info(f"Grammy DataFrame columns: {df.columns.tolist()}")
         logger.info(f"Extracted Grammy Awards data with {len(df)} rows")
         logger.info(f"Grammy sample data:\n{df.head(2).to_string()}")
         return df.to_json(orient="records")
@@ -155,7 +170,7 @@ def extract_grammys():
         logger.error(f"Error extracting Grammy Awards data: {e}", exc_info=True)
         raise
 
-def transform_spotify(df):
+def transform_spotify(df, **context):
     logger.info("DEBUG: transform_spotify() called")
     try:
         logger.info(f"Received Spotify data for transformation: {df[:100]}...")
@@ -177,11 +192,11 @@ def transform_spotify(df):
         logger.error(f"Error transforming Spotify data: {e}", exc_info=True)
         raise
 
-def transform_spotify_api(df):
-    logger.info("DEBUG: transform_spotify() called")
+def transform_spotify_api(df, **context):
+    logger.info("DEBUG: transform_spotify_api() called")
     try:
-        logger.info(f"Received Spotify data for transformation: {df[:100]}...")
-        logger.info("Transforming Spotify data")
+        logger.info(f"Received Spotify API data for transformation: {df[:100]}...")
+        logger.info("Transforming Spotify API data")
         json_df = json.loads(df)
         raw_df = pd.DataFrame(json_df)
         transformed_data = transform_spotify_api_data(raw_df)
@@ -190,16 +205,16 @@ def transform_spotify_api(df):
             if isinstance(json_data, pd.DataFrame):
                 json_data = json_data.to_json(orient="records")
             json_parsed = json.loads(json_data)
-            logger.info(f"Transformed Spotify data with {len(json_parsed)} rows")
-            logger.info(f"Transformed Spotify sample data:\n{pd.DataFrame(json_parsed).head(2).to_string()}")
+            logger.info(f"Transformed Spotify API data with {len(json_parsed)} rows")
+            logger.info(f"Transformed Spotify API sample data:\n{pd.DataFrame(json_parsed).head(2).to_string()}")
         except Exception as e:
-            logger.info(f"Transformed Spotify data successfully, but couldn't parse JSON: {e}")
+            logger.info(f"Transformed Spotify API data successfully, but couldn't parse JSON: {e}")
         return json_data
     except Exception as e:
-        logger.error(f"Error transforming Spotify data: {e}", exc_info=True)
+        logger.error(f"Error transforming Spotify API data: {e}", exc_info=True)
         raise
 
-def transform_grammys(df):
+def transform_grammys(df, **context):
     logger.info("DEBUG: transform_grammys() called")
     try:
         logger.info(f"Received Grammy data for transformation: {df[:100]}...")
@@ -221,13 +236,14 @@ def transform_grammys(df):
         logger.error(f"Error transforming Grammy Awards data: {e}", exc_info=True)
         raise
 
-def merge_data(spotify_df, grammys_df, spotify_api_df=None):
+def merge_data(spotify_df, grammys_df, spotify_api_df=None, **context):
     logger.info("DEBUG: merge_data() called")
     try:
         logger.info(f"Received Spotify data for merging: {spotify_df[:100]}...")
         logger.info(f"Received Grammy data for merging: {grammys_df[:100]}...")
         if spotify_api_df:
             logger.info(f"Received Spotify API data for merging: {spotify_api_df[:100]}...")
+        
         logger.info("Merging Spotify and Grammy Awards data")
         spotify_json = json.loads(spotify_df)
         grammys_json = json.loads(grammys_df)
@@ -254,7 +270,7 @@ def merge_data(spotify_df, grammys_df, spotify_api_df=None):
         logger.error(f"Error merging data: {e}", exc_info=True)
         raise
 
-def load_data(df):
+def load_data(df, **context):
     logger.info("DEBUG: load_data() called")
     try:
         logger.info(f"Received data for loading: {df[:100]}...")
@@ -268,7 +284,7 @@ def load_data(df):
         logger.error(f"Error loading data: {e}", exc_info=True)
         raise
 
-def store_data(df):
+def store_data(df, **context):
     logger.info("DEBUG: store_data() called")
     try:
         logger.info(f"Received data for storing: {df[:100]}...")

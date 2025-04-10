@@ -2,7 +2,7 @@
 
 ## Overview  
 This project simulates a real-world Data Engineering task, focusing on building an **ETL pipeline** using **Apache Airflow**. The objective is to:  
-- **Extract** data from three sources: an API, a CSV file (Spotify dataset), and a database (Grammys dataset).  
+- **Extract** data from three sources: the Spotify API, a CSV file (Spotify dataset), and a database (Grammys dataset).  
 - **Transform** and merge the data using Apache Airflow.  
 - **Load** the processed data into a database and Google Drive as a CSV.  
 - Create a **dashboard** using Power BI to display insights from the database.  
@@ -39,24 +39,38 @@ This project simulates a real-world Data Engineering task, focusing on building 
     - artist: Associated artist(s).
     - winner: Boolean indicating win (True/False).
 
+3. **Spotify API** <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/2048px-Spotify_logo_without_text.svg.png" alt="Spotify" width="15px"/>
+- Source: API
+- Description: In order to improve the analysis, the key column will be `followers` of each artist.
+- Link: [Spotify for Developers](https://developer.spotify.com/dashboard)
+
+    **Key Column:**
+    - followers: Artist Followers.
+
+---
 
 ## Project Structure
 
 | Folder/File            | Description |
 |------------------------|------------|
-| **airflow/**               | Airflow configuration and DAGs  |
-| **assets**             | Static resources (images, documentation, etc.) |
+| **assets/**             | Static resources (images, documentation, etc.) |
 | **data/**             | Dataset used in the project (ignored in .gitignore) |
-| **docs/**              | Documentation and workshop PDFs |
+| **dags/**             | Stores Apache Airflow Dags |
+| ├── **tasks/**  | Stores Apache Airflow Tasks that will be used by our dag  |  
+| **docs/**              | Documentation, Guides and workshop PDFs |
+| **drive_config/**              | Stores the client secret from OAuth and saved credentials to store the merge data |
 | **notebooks/**        | Jupyter Notebooks with analysis |
 | ├── 01_grammys-raw-load.ipynb | Loads Grammys data into PostgreSQL  |  
 | ├── 02_spotify-EDA.ipynb   | Exploratory Data Analysis of Spotify dataset    |  
 | ├── 03_grammys-EDA.ipynb   | Exploratory Data Analysis of Grammys dataset    |  
-| ├── 04_data-pipeline.ipynb | ETL pipeline execution and merging    |
+| ├── 04_data-pipeline.ipynb | ETL pipeline execution and Google Drive credentials creation    |
 | **src/**                   | Python scripts for Airflow tasks and utilities   | 
 | **venv/**              | Virtual environment (ignored in .gitignore) |
 | **env/**               | Environment variables (ignored in .gitignore) |
 | ├── .env                 |	Stores credentials and paths  |
+| **pbi/**               | Power BI files (ignored in .gitignore) |
+| **docker-compose.yaml**         | Docker configuration |
+| **requirements.txt**         | All the libraries required to execute this project properly |
 | **README.md**         | This file |
 
 ## Tools and Libraries
@@ -149,17 +163,47 @@ This project simulates a real-world Data Engineering task, focusing on building 
         SPOTIFY_CLIENT_SECRET=client_secret
         ```
 
-7. **Set up Apache Airflow (Airflow setup must be done in a Linux environment)**
+7. **Execute Docker Containers**
 
-    ```bash
-    export AIRFLOW_HOME="$(pwd)/airflow"
-    airflow standalone
-    ```
-    - Update _airflow.cfg_ to include the `src/` folder in _plugins_folder_.
-    - Access the GUI at [http://localhost:8080](http://localhost:8080).
-    - Finally, you must run the DAG.
+    After generating your own `docker-compose.yaml`, you must run these commands in your terminal in order to execute your containers:
+
+    - `docker-compose build` to create them.
+    - `docker-compose up -d` to execute them.
+    - `docker-compose down` to turn them off.
+
+8. **Create the connection to the Spotify API**
+
+    > To generate the client ID and client secret, follow this [guide](https://github.com/SEBASBELMOS/workshop-002/blob/main/docs/guides/spotify_api.md)
+
+9. **Dag Validation**
+
+    After running the dag, you will see this file in your Google Drive Folder:
+
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/drive_csv.png" width="400"/>
+
+    And you will see this in your Airflow Home:
+
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/dag_working.png" width="400"/>
 
 ---
+
+## Power BI Connection (Not necessary)
+1. Open Power BI Desktop and create a new dashboard. 
+2. Select the _Get data_ option, then choose the "_PostgreSQL Database_" option.
+
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/pbi.png" width="400"/>
+
+3. Insert the _PostgreSQL Server_ and _Database Name_.
+    
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/postgres_pbi.png" width="400"/>
+
+4. Fill the following fields with your Postgres credentials.
+    
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/postgres_access_pbi.png" width="400"/>    
+
+5. After establishing the connection, the tables of your db will be displayed. You need to select the ones you need, and then start creating your own dashboards.
+
+- Open my Power BI Visualisation [here]()
 
 ---
 

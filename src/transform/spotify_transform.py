@@ -6,7 +6,6 @@ import json
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p")
 log = logging.getLogger(__name__)
 
-
 def categorise_duration(duration_ms: int) -> str:
     """
     Categorises the duration of a song based on its duration in milliseconds.
@@ -80,15 +79,16 @@ def transform_spotify_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
             try:
                 df = pd.DataFrame(json.loads(df))
             except json.JSONDecodeError as e:
-                logging.error(f"Invalid JSON string provided: {str(e)}")
+                log.error(f"Invalid JSON string provided: {str(e)}")
                 return None
 
         if df.empty:
             raise ValueError("Input DataFrame is empty")
             
-        logging.info(f"Cleaning and transforming the DataFrame. Current dimensions: {df.shape[0]} rows and {df.shape[1]} columns.")
+        log.info(f"Cleaning and transforming the DataFrame. Current dimensions: {df.shape[0]} rows and {df.shape[1]} columns.")
         
-        df = df.drop(columns=["Unnamed: 0"])
+        if "Unnamed: 0" in df.columns:
+            df = df.drop(columns=["Unnamed: 0"])
        
         df = (df
                 .dropna()
@@ -143,7 +143,7 @@ def transform_spotify_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
             ],
             
             'Instrumental': [
-                'acoustic', 'classical',  'guitar', 'piano',
+                'acoustic', 'classical', 'guitar', 'piano',
                 'world-music', 'opera', 'new-age'
             ],
             
@@ -175,11 +175,8 @@ def transform_spotify_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
         df["duration_min"] = df["duration_min"].astype(int)
 
         df["duration_category"] = df["duration_ms"].apply(categorise_duration)
-        
         df["popularity_category"] = df["popularity"].apply(categorise_popularity)
-        
         df["track_mood"] = df["valence"].apply(determine_mood)
-        
         df["live_performance"] = df["liveness"] > 0.8
         
         columns_to_drop = [
@@ -189,10 +186,15 @@ def transform_spotify_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
         ]
         df = df.drop(columns=columns_to_drop)
 
-        logging.info(f"The DataFrame has been cleaned and transformed. Final dimensions: {df.shape[0]} rows and {df.shape[1]} columns.")
+        if 'artists' in df.columns:
+            df = df.rename(columns={'artists': 'artist_name'})
+        else:
+            raise KeyError("Expected 'artists' column in Spotify dataset DataFrame")
+
+        log.info(f"The DataFrame has been cleaned and transformed. Final dimensions: {df.shape[0]} rows and {df.shape[1]} columns.")
         
         return df.to_json(orient="records")
         
     except Exception as e:
-        logging.error(f"An error occurred during transformation: {str(e)}")
+        log.error(f"An error occurred during transformation: {str(e)}")
         return None

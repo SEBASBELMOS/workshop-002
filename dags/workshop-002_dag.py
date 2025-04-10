@@ -38,23 +38,6 @@ from tasks.etl import (
     transform_spotify_api
 )
 
-def execute_extract_grammys():
-    from src.extract.grammys_extract import extract_grammys_data
-    try:
-        logger.info("Starting Grammy data extraction")
-        dataframes = extract_grammys_data()
-        logger.info(f"Grammy data extraction completed. Keys: {list(dataframes.keys())}")
-        
-        if 'grammy_awards' not in dataframes:
-            raise ValueError("Expected 'grammy_awards' table not found in extracted data")
-        
-        df = dataframes['grammy_awards']
-        logger.info(f"Grammy data type: {type(df)}")
-        return df.to_json(orient="records")
-    except Exception as e:
-        logger.error(f"Error extracting Grammy data: {e}", exc_info=True)
-        raise
-
 with DAG(
     dag_id='workshop_002_etl_pipeline',
     description='ETL pipeline for Spotify and Grammy Awards data',
@@ -115,7 +98,7 @@ with DAG(
 
     extract_grammys_task = PythonOperator(
         task_id='extract_grammys',
-        python_callable=execute_extract_grammys,
+        python_callable=extract_grammys,
         provide_context=True,
         owner='sebasbelmos',
         depends_on_past=False,
@@ -209,8 +192,9 @@ with DAG(
 
     create_schemas_task >> load_grammys_csv_task
     create_schemas_task >> extract_spotify_task
-    create_schemas_task >> extract_spotify_api_task
+    create_schemas_task >> extract_grammys_task
     load_grammys_csv_task >> extract_grammys_task
+    extract_grammys_task >> extract_spotify_api_task
     extract_spotify_task >> transform_spotify_task
     extract_spotify_api_task >> transform_spotify_api_task
     extract_grammys_task >> transform_grammys_task
