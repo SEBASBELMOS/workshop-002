@@ -183,7 +183,7 @@ This project simulates a real-world Data Engineering task, focusing on building 
 
     And you will see this in your Airflow Home:
 
-    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/dag_working.png" width="400"/>
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/dag_working.png" width="200"/>
 
 ---
 

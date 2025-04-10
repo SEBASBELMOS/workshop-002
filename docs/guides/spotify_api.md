@@ -12,15 +12,19 @@ The app provides, among others, the _Client ID_ and _Client Secret_ needed to im
 
 2. Click on the _Create an App_ button.
 
-    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/create_an_app.png" width="400"/>
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/create_an_app.png" width="500"/>
 
 3. Enter the app details of your choice, accept the _Developer Terms of Service_, then click on CREATE.
 
-    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/createappdialog.png" width="400"/>
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/createappdialog.png" width="500"/>
 
 4. Afterwards, you will see this screen with your Client ID and secret (Save them and add them in your .env).
 
-    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/info_api.png" width="400"/>
+    <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/info_api.png" width="500"/>
+
+---
+
+Here's what your `.env` file should look like at the end of this guide.
 
     ```python
         #PostgreSQL Variables

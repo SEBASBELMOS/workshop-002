@@ -8,7 +8,7 @@
 2. **Enable the Google Drive API**
     - Open the navigation bar, navigate to _APIs & Services_ (You can also use the search bar and type _APIs & Services_).
 
-        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/gcp_navigation.png" width="600"/>
+        <img src="https://github.com/SEBASBELMOS/workshop-002/blob/main/assets/gcp_navigation.png" width="400"/>
 
     - In the search field of _Library_, type `Google Drive API`, select and enable it.
 
@@ -34,6 +34,7 @@
 
 4. **Install the PyDrive2 library**
     To interact with Google Drive in Python, you need this library, here is how you can install it:
+    
            ```python
             pip install PyDrive2
             ```

@@ -10,7 +10,7 @@ This file is used by the `PyDrive2` library with the `store.py` module (Part of 
 
 Replace all the values with your own credentials.
 
-    ```yaml
+```yaml
     client_config_backend: file
     client_config:
     client_id: your_client_id.apps.googleusercontent.com
@@ -27,7 +27,7 @@ Replace all the values with your own credentials.
 
     oauth_scope:
     - https://www.googleapis.com/auth/drive
-    ```
+```
 
 ---
 
@@ -65,7 +65,7 @@ Replace all the values with your own credentials.
 
 We will require this file in order to store the OAuth credentials from Google and this is the structure:
 
-    ```json
+```json
     {
         "web": {
             "client_id": "your_client_id.apps.googleusercontent.com",
@@ -80,7 +80,7 @@ We will require this file in order to store the OAuth credentials from Google an
                 ]
         }
     }
-    ```
+```
 
 Make sure you replace the values: `client_id`, `project_id`, `client_secret` and if necessary, `redirect_uris` but with this one, you will need at least one pointing to the local server.
 
