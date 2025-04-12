@@ -23,13 +23,13 @@ folder_id = os.getenv("FOLDER_ID")
 def auth_drive():
     """
     Authenticates and returns a Google Drive instance using the PyDrive library.
-    This function uses saved credentials for authentication. If no credentials are found,
-    it raises an error instead of attempting interactive authentication.
+    This function handles the authentication process for Google Drive using the PyDrive library.
+    It checks for existing credentials and refreshes them if expired. If no credentials are found,
+    it performs a web authentication and saves the credentials for future use.
     
     Returns:
         GoogleDrive: An authenticated GoogleDrive instance.
     Raises:
-        FileNotFoundError: If required configuration files are missing.
         Exception: If there is an error during the authentication process.
     """
     try:
@@ -44,23 +44,29 @@ def auth_drive():
             raise FileNotFoundError(f"Client secrets file not found at {client_secrets_file}")
         if not os.path.exists(settings_file):
             raise FileNotFoundError(f"Settings file not found at {settings_file}")
-        if not os.path.exists(credentials_file):
-            raise FileNotFoundError(
-                f"Saved credentials not found at {credentials_file}. "
-                "Please generate credentials using generate_credentials.py on a local machine."
-            )
 
+        os.makedirs(os.path.dirname(credentials_file), exist_ok=True)
+        
         gauth = GoogleAuth(settings_file=settings_file)
         
-        logging.info("Loading saved credentials.")
-        gauth.LoadCredentialsFile(credentials_file)
-        if gauth.access_token_expired:
-            logging.info("Access token expired, refreshing token.")
-            gauth.Refresh()
-            gauth.SaveCredentialsFile(credentials_file)
-            logging.info("Token refreshed and saved.")
+        if os.path.exists(credentials_file):
+            logging.info("Loading saved credentials.")
+            gauth.LoadCredentialsFile(credentials_file)
+            if gauth.access_token_expired:
+                logging.info("Access token expired, refreshing token.")
+                gauth.Refresh()
+                gauth.SaveCredentialsFile(credentials_file)
+                logging.info("Token refreshed and saved.")
+            else:
+                logging.info("Using saved credentials.")
         else:
-            logging.info("Using saved credentials.")
+            logging.info("Saved credentials not found, performing web authentication.")
+            
+            gauth.LoadClientConfigFile(client_secrets_file)
+            gauth.LocalWebserverAuth()
+            gauth.SaveCredentialsFile(credentials_file)
+            
+            logging.info("Local webserver authentication completed and credentials saved successfully.")
 
         drive = GoogleDrive(gauth)
         logging.info("Google Drive authentication completed successfully.")

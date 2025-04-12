@@ -35,16 +35,26 @@ from tasks.etl import (
     load_data,
     store_data,
     extract_spotify_api,
-    transform_spotify_api
+    #transform_spotify_api
 )
+
+default_args = {
+    'owner': 'sebasbelmos',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
 
 with DAG(
     dag_id='workshop_002_etl_pipeline',
     description='ETL pipeline for Spotify and Grammy Awards data',
     schedule_interval=timedelta(days=1),
-    start_date=datetime(2025, 4, 9),
+    start_date=datetime(2025, 4, 12),
     catchup=False,
     tags=['etl', 'spotify', 'grammys'],
+    default_args=default_args,
     is_paused_upon_creation=False,
 ) as dag:
 
@@ -52,60 +62,30 @@ with DAG(
         task_id='create_schemas',
         python_callable=create_schemas,
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     load_grammys_csv_task = PythonOperator(
         task_id='load_grammys_csv',
         python_callable=load_grammys_csv_to_db,
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     extract_spotify_task = PythonOperator(
         task_id='extract_spotify',
         python_callable=extract_spotify,
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     extract_spotify_api_task = PythonOperator(
         task_id='extract_spotify_api',
         python_callable=extract_spotify_api,
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     extract_grammys_task = PythonOperator(
         task_id='extract_grammys',
         python_callable=extract_grammys,
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     transform_spotify_task = PythonOperator(
@@ -113,38 +93,20 @@ with DAG(
         python_callable=transform_spotify,
         op_args=['{{ ti.xcom_pull(task_ids="extract_spotify") }}'],
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
-    transform_spotify_api_task = PythonOperator(
-        task_id='transform_spotify_api',
-        python_callable=transform_spotify_api,
-        op_args=['{{ ti.xcom_pull(task_ids="extract_spotify_api") }}'],
-        provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
-    )
+    #transform_spotify_api_task = PythonOperator(
+        #task_id='transform_spotify_api',
+        #python_callable=transform_spotify_api,
+        #op_args=['{{ ti.xcom_pull(task_ids="extract_spotify_api") }}'],
+        #provide_context=True,
+    #)
 
     transform_grammys_task = PythonOperator(
         task_id='transform_grammys',
         python_callable=transform_grammys,
         op_args=['{{ ti.xcom_pull(task_ids="extract_grammys") }}'],
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     merge_data_task = PythonOperator(
@@ -156,12 +118,6 @@ with DAG(
             '{{ ti.xcom_pull(task_ids="transform_spotify_api") }}'
         ],
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     load_data_task = PythonOperator(
@@ -169,12 +125,6 @@ with DAG(
         python_callable=load_data,
         op_args=['{{ ti.xcom_pull(task_ids="merge_data") }}'],
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
     store_data_task = PythonOperator(
@@ -182,22 +132,17 @@ with DAG(
         python_callable=store_data,
         op_args=['{{ ti.xcom_pull(task_ids="load_data") }}'],
         provide_context=True,
-        owner='sebasbelmos',
-        depends_on_past=False,
-        email_on_failure=False,
-        email_on_retry=False,
-        retries=1,
-        retry_delay=timedelta(minutes=5),
     )
 
-    create_schemas_task >> load_grammys_csv_task
-    create_schemas_task >> extract_spotify_task
-    create_schemas_task >> extract_grammys_task
+    create_schemas_task >> [load_grammys_csv_task, extract_spotify_task, extract_grammys_task]
     load_grammys_csv_task >> extract_grammys_task
-    extract_grammys_task >> extract_spotify_api_task
+    extract_spotify_task >> extract_spotify_api_task
     extract_spotify_task >> transform_spotify_task
-    extract_spotify_api_task >> transform_spotify_api_task
+    extract_spotify_api_task #>> transform_spotify_api_task
     extract_grammys_task >> transform_grammys_task
-    [transform_spotify_task, transform_grammys_task, transform_spotify_api_task] >> merge_data_task
+    [transform_spotify_task, 
+     transform_grammys_task, 
+     #transform_spotify_api_task
+     ] >> merge_data_task
     merge_data_task >> load_data_task
     load_data_task >> store_data_task

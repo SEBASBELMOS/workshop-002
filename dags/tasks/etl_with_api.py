@@ -124,27 +124,24 @@ def extract_spotify(**context):
         logger.error(f"Error extracting Spotify data: {e}", exc_info=True)
         raise
 
-def extract_spotify_api(**kwargs):
-    logging.info("DEBUG: extract_spotify_api() called")
-    ti = kwargs['ti']
-    track_ids = ti.xcom_pull(task_ids='extract_spotify', key='track_ids') 
-    
-    if isinstance(track_ids, str):
-        track_ids = json.loads(track_ids)
-    
-    if not isinstance(track_ids, list):
-        raise TypeError(f"track_ids must be a list, got {type(track_ids)}: {track_ids}")
-    
-    logging.info(f"Pulled {len(track_ids)} track_ids from XCom")
-    
+def extract_spotify_api(**context):
+    logger.info("DEBUG: extract_spotify_api() called")
     try:
-        artist_df = extract_spotify_api_data(track_ids, csv_path="/opt/airflow/data/spotify_artists_followers.csv")
-        logging.info(f"Pushing artist_data and artist_track_ids to XCom")
-        ti.xcom_push(key='artist_data', value=artist_df.to_json(orient="records"))
-        ti.xcom_push(key='artist_track_ids', value=track_ids)
-        logging.info(f"Pushed artist_track_ids to XCom: {len(track_ids)} track IDs, sample: {track_ids[:5]}...")
+        track_ids = context['ti'].xcom_pull(key='track_ids', task_ids='extract_spotify')
+        logger.info(f"Pulled {len(track_ids)} track_ids from XCom")
+        if not track_ids:
+            raise ValueError("No track_ids received from extract_spotify task")
+        
+        artist_df = extract_spotify_api_data(track_ids, csv_path="/opt/airflow/data/spotify_artist_data.csv")
+        if artist_df.empty:
+            raise ValueError("No artist data extracted from Spotify API or CSV")
+        
+        context['ti'].xcom_push(key='artist_data', value=artist_df.to_json(orient="records"))
+        context['ti'].xcom_push(key='artist_track_ids', value=track_ids)
+        logger.info("Pushed artist_data and artist_track_ids to XCom")
+        return artist_df.to_json(orient="records")
     except Exception as e:
-        logging.error(f"Error extracting Spotify API data: {e}")
+        logger.error(f"Error extracting Spotify API data: {e}", exc_info=True)
         raise
 
 def extract_grammys(**context):
@@ -210,13 +207,8 @@ def transform_spotify_api(df, **context):
             logger.info(f"Transformed Spotify API data successfully, but couldn't parse JSON: {e}")
         
         track_ids = context['ti'].xcom_pull(key='artist_track_ids', task_ids='extract_spotify_api')
-        if track_ids is None:
-            logger.warning("No artist_track_ids found in XCom from extract_spotify_api. Downstream tasks may be affected.")
-        else:
-            logger.info(f"Retrieved artist_track_ids from extract_spotify_api: {len(track_ids)} track IDs, sample: {track_ids[:5]}...")
-        
         context['ti'].xcom_push(key='artist_track_ids', value=track_ids)
-        logger.info(f"Pushed artist_track_ids to XCom for the next task: {track_ids is not None}")
+        logger.info("Pushed artist_track_ids to XCom for the next task")
         
         return json_data
     except Exception as e:
@@ -250,10 +242,8 @@ def merge_data(spotify_df, grammys_df, spotify_api_df=None, **context):
     try:
         logger.info(f"Received Spotify data for merging: {spotify_df[:100]}...")
         logger.info(f"Received Grammy data for merging: {grammys_df[:100]}...")
-        if spotify_api_df is not None:
+        if spotify_api_df:
             logger.info(f"Received Spotify API data for merging: {spotify_api_df[:100]}...")
-        else:
-            logger.info("Spotify API data is None, skipping API data merge.")
         
         logger.info("Merging Spotify and Grammy Awards data")
         spotify_json = json.loads(spotify_df)
@@ -262,21 +252,15 @@ def merge_data(spotify_df, grammys_df, spotify_api_df=None, **context):
         grammys_df = pd.DataFrame(grammys_json)
         
         track_ids = context['ti'].xcom_pull(key='artist_track_ids', task_ids='transform_spotify_api')
-        if isinstance(track_ids, str):
-            track_ids = json.loads(track_ids)
-        
-        logger.info(f"Retrieved track_ids from XCom: {track_ids[:10] if track_ids else None}...")
-        
-        if not track_ids and spotify_api_df is not None:
+        if not track_ids and spotify_api_df:
             logger.warning("No track_ids found in XCom for Spotify API data. Cannot merge API data accurately.")
-            track_ids = None
+            spotify_api_df = None
         
-        if spotify_api_df is not None and isinstance(spotify_api_df, str) and track_ids is not None:
+        if spotify_api_df:
             spotify_api_json = json.loads(spotify_api_df)
             spotify_api_df = pd.DataFrame(spotify_api_json)
             merged_data = merge_data_func(spotify_df, grammys_df, spotify_api_df, track_ids=track_ids)
         else:
-            logger.info("Skipping Spotify API data merge due to missing data or track_ids.")
             merged_data = merge_data_func(spotify_df, grammys_df)
             
         if isinstance(merged_data, pd.DataFrame):

@@ -2,11 +2,10 @@ import pandas as pd
 import re
 import logging
 from typing import Optional, Union, List
-import json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p")
+log = logging.getLogger(__name__)
 
-# Constants
 CATEGORIES: List[str] = [
     "Best Classical Vocal Soloist Performance",
     "Best Classical Vocal Performance",
@@ -35,15 +34,6 @@ ROLES_OF_INTEREST: List[str] = [
 ]
 
 def extract_artist(workers: Optional[str]) -> Optional[str]:
-    """
-    Extracts the artist name from the 'workers' column if it's within parentheses.
-    
-    Args:
-        workers (Optional[str]): The workers string to extract artist from
-        
-    Returns:
-        Optional[str]: The extracted artist name or None if not found
-    """
     if pd.isna(workers):
         return None
     match = re.search(r'\((.*?)\)', workers)
@@ -52,15 +42,6 @@ def extract_artist(workers: Optional[str]) -> Optional[str]:
     return None
 
 def send_workers_to_artist(row: pd.Series) -> Optional[str]:
-    """
-    Moves the value from 'workers' to 'artist' if 'artist' is NaN and 'workers' doesn't contain ';' or ','.
-    
-    Args:
-        row (pd.Series): The row containing artist and workers columns
-        
-    Returns:
-        Optional[str]: The artist value to use
-    """
     if pd.isna(row["artist"]) and pd.notna(row["workers"]):
         workers = row["workers"]
         if not re.search(r'[;,]', workers):
@@ -68,16 +49,6 @@ def send_workers_to_artist(row: pd.Series) -> Optional[str]:
     return row["artist"]
 
 def semicolon_artist(workers: Optional[str], roles: List[str]) -> Optional[str]:
-    """
-    Extracts the first segment of 'workers' before the semicolon if it doesn't contain roles of interest.
-    
-    Args:
-        workers (Optional[str]): The workers string to process
-        roles (List[str]): List of roles to check against
-        
-    Returns:
-        Optional[str]: The extracted artist name or None if not found
-    """
     if pd.isna(workers):
         return None
     parts = workers.split(';')
@@ -87,16 +58,6 @@ def semicolon_artist(workers: Optional[str], roles: List[str]) -> Optional[str]:
     return None
 
 def extract_roles(workers: Optional[str], roles: List[str]) -> Optional[str]:
-    """
-    Extracts names associated with specific roles from 'workers' and assigns them to 'artist'.
-    
-    Args:
-        workers (Optional[str]): The workers string to process
-        roles (List[str]): List of roles to check against
-        
-    Returns:
-        Optional[str]: The extracted artist names or None if not found
-    """
     if pd.isna(workers):
         return None
     roles_pattern = '|'.join(roles)
@@ -104,49 +65,46 @@ def extract_roles(workers: Optional[str], roles: List[str]) -> Optional[str]:
     matches = re.findall(pattern, workers, flags=re.IGNORECASE)
     return ", ".join(matches).strip() if matches else None
 
-def transform_grammys_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
-    """
-    Cleans and transforms the Grammy Awards data and returns the DataFrame as JSON.
-    
-    Args:
-        df (Union[pd.DataFrame, str]): Input DataFrame or JSON string
-        
-    Returns:
-        Optional[str]: Transformed DataFrame as JSON string or None if error occurs
-        
-    Raises:
-        ValueError: If input DataFrame is empty or required columns are missing
-    """
+def clean_grammy_artist(artist: Optional[str]) -> Optional[str]:
+    if pd.isna(artist):
+        return None
+    artist = artist.replace(" featuring ", ";").replace(" feat. ", ";").replace(" ft. ", ";")
+    if ";" in artist:
+        artist = artist.split(";")[0].strip()
+    elif " & " in artist:
+        artist = artist.split(" & ")[0].strip()
+    elif "," in artist:
+        artist = artist.split(",")[0].strip()
+    if artist.lower().startswith("the "):
+        artist = artist[4:].strip()
+    artist = artist.replace("'", "").replace("!", "").replace("(", "").replace(")", "")
+    return artist.strip()
+
+def transform_grammys_data(df: pd.DataFrame) -> pd.DataFrame:
     try:
-        if isinstance(df, str):
-            try:
-                df = pd.DataFrame(json.loads(df))
-            except json.JSONDecodeError as e:
-                logging.error(f"Invalid JSON string provided: {str(e)}")
-                return None
+        log.info(f"Initial Grammy DataFrame has {len(df)} rows and {len(df.columns)} columns")
+        log.info(f"Raw Grammy DataFrame columns: {df.columns.tolist()}")
         
-        if df.empty:
-            raise ValueError("Input DataFrame is empty")
-            
-        required_columns = ["winner", "nominee", "artist", "workers", "category", 
-                          "published_at", "updated_at", "img"]
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
-            raise ValueError(f"Missing required columns: {missing_columns}")
-        
-        logging.info(f"Starting transformation. The DataFrame has {df.shape[0]} rows and {df.shape[1]} columns.")
-        
-        df = df.rename(columns={"winner": "is_winner"})
-        
-        df = df.drop(columns=["published_at", "updated_at", "img"])
+        if len(df.columns) != len(set(df.columns)):
+            duplicates = df.columns[df.columns.duplicated()].tolist()
+            log.warning(f"Duplicate columns found in raw DataFrame: {duplicates}")
+            df = df.copy()
+            for col in duplicates:
+                dup_indices = [i for i, x in enumerate(df.columns) if x == col]
+                for idx, dup_idx in enumerate(dup_indices[1:], 1):
+                    df.columns.values[dup_idx] = f"{col}_{idx}"
+
+        columns_to_drop = ['published_at', 'updated_at', 'img']
+        df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
         
         df = df.dropna(subset=["nominee"])
         
-        both_null_values = df[df["artist"].isna() & df["workers"].isna()]
-        both_filtered = both_null_values[both_null_values["category"].isin(CATEGORIES)]
-        both_null_values = both_null_values.drop(both_filtered.index)
+        both_null = df[df["artist"].isna() & df["workers"].isna()]
+        both_filtered = both_null[both_null["category"].isin(CATEGORIES)]
+        both_null = both_null.drop(both_filtered.index)
         df = df.drop(both_filtered.index)
-        df.loc[both_null_values.index, "artist"] = both_null_values["nominee"]
+        
+        df.loc[both_null.index, "artist"] = both_null["nominee"]
         
         df["artist"] = df.apply(
             lambda row: extract_artist(row["workers"]) if pd.isna(row["artist"]) else row["artist"],
@@ -171,12 +129,39 @@ def transform_grammys_data(df: Union[pd.DataFrame, str]) -> Optional[str]:
         
         df["artist"] = df["artist"].replace({"(Various Artists)": "Various Artists"})
         
+        df["artist"] = df["artist"].apply(clean_grammy_artist)
+        
         df = df.drop(columns=["workers"])
         
-        logging.info(f"Transformation complete. The DataFrame now has {df.shape[0]} rows and {df.shape[1]} columns.")
+        if 'title' in df.columns:
+            log.warning("Column 'title' already exists in DataFrame; dropping it to avoid conflict")
+            df = df.drop(columns=['title'])
         
-        return df.to_json(orient="records")
-    
+        df = df.rename(columns={
+            'nominee': 'title',
+            'winner': 'is_winner'
+        })
+        
+        required_columns = ['year', 'category', 'title', 'artist', 'is_winner']
+        for col in required_columns:
+            if col not in df.columns:
+                raise KeyError(f"Expected column '{col}' in Grammy DataFrame")
+        
+        df = df.fillna({
+            'year': 0,
+            'artist': 'Unknown',
+            'title': 'Unknown',
+            'category': 'Unknown',
+            'is_winner': False
+        })
+        
+        df['is_winner'] = df['is_winner'].astype(bool)
+        
+        log.info(f"Transformed Grammy DataFrame has {len(df)} rows and {len(df.columns)} columns")
+        log.info(f"Sample artists after cleaning: {df['artist'].head().tolist()}")
+        
+        return df
+        
     except Exception as e:
-        logging.error(f"An error occurred during transformation: {str(e)}")
-        return None
+        log.error(f"Error transforming Grammy data: {e}")
+        raise

@@ -1,6 +1,6 @@
 import pandas as pd
 import logging
-import re
+from fuzzywuzzy import fuzz
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,38 +38,34 @@ def drop_columns(df, columns):
     else:
         logger.debug(f"None of the columns {columns} found in DataFrame. No columns dropped.")
 
-def clean_text(text, is_artist=False):
+def fuzzy_match_track_title(row, grammys_df, threshold=85):
     """
-    Clean text by removing common suffixes, extra spaces, and punctuation, and standardizing artist separators.
+    Perform fuzzy matching between a Spotify track name and Grammy titles.
     
     Args:
-        text (str): The text to clean.
-        is_artist (bool): If True, apply artist-specific cleaning (e.g., sorting names).
+        row: A row from spotify_df with 'track_name_clean'.
+        grammys_df: The Grammy DataFrame with 'title_clean'.
+        threshold: Minimum fuzzy match score to consider a match.
     
     Returns:
-        str: The cleaned text.
+        pd.Series: Best matching row from grammys_df, or None if no match.
     """
-    if not isinstance(text, str):
-        return ""
-    text = text.lower().strip()
-    if not is_artist:
-        text = re.sub(r'\s*\(feat\..*?\)', '', text)
-        text = re.sub(r'\s*\[.*?\]', '', text)
-        text = re.sub(r'\s*\(.*?\)', '', text)
-        text = re.sub(r'\s*-*\s*(acoustic|live|remix|version|edit|mix|radio|demo|unplugged|extended|single)\b.*', '', text)
-    text = re.sub(r'\s*&\s*', ',', text)
-    text = re.sub(r'\s*;\s*', ',', text)
-    text = re.sub(r'\s*,\s*', ',', text)
-    text = re.sub(r'[^\w\s,]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    if is_artist and ',' in text:
-        artists = sorted(text.split(','))
-        text = ','.join(artists)
-    return text
+    track_name = row['track_name_clean']
+    best_score = 0
+    best_match = None
+    
+    for _, grammy_row in grammys_df.iterrows():
+        title = grammy_row['title_clean']
+        score = fuzz.token_sort_ratio(track_name, title)
+        if score > best_score and score >= threshold:
+            best_score = score
+            best_match = grammy_row
+    
+    return best_match
 
 def merge_data(spotify_df: pd.DataFrame, grammys_df: pd.DataFrame, spotify_api_df: pd.DataFrame = None, track_ids: list = None) -> pd.DataFrame:
     """
-    Merge the Spotify and Grammy datasets using exact matching on 'track_name' and 'artists',
+    Merge the Spotify and Grammy datasets using fuzzy matching on 'track_name' and 'title',
     and optionally add Spotify API data using artist_id.
 
     Args:
@@ -110,44 +106,36 @@ def merge_data(spotify_df: pd.DataFrame, grammys_df: pd.DataFrame, spotify_api_d
         if missing_grammy_cols:
             raise KeyError(f"Missing required columns in Grammy DataFrame: {missing_grammy_cols}")
 
-        if 'winner' in grammys_df.columns and 'is_winner' not in grammys_df.columns:
-            grammys_df = grammys_df.rename(columns={'winner': 'is_winner'})
-            logger.info("Renamed 'winner' column to 'is_winner' in Grammy DataFrame.")
-
         spotify_df = spotify_df.copy()
         grammys_df = grammys_df.copy()
-        
-        logger.info("Cleaning Spotify and Grammy data for exact matching.")
-        spotify_df['track_name_clean'] = spotify_df['track_name'].apply(clean_text, is_artist=False)
-        grammys_df['title_clean'] = grammys_df['title'].apply(clean_text, is_artist=False)
-        spotify_df['artists_clean'] = spotify_df['artists'].apply(clean_text, is_artist=True)
-        grammys_df['artist_clean'] = grammys_df['artist'].apply(clean_text, is_artist=True)
+        spotify_df['track_name_clean'] = spotify_df['track_name'].astype(str).str.lower().str.strip()
+        grammys_df['title_clean'] = grammys_df['title'].astype(str).str.lower().str.strip()
+        grammys_df['artist_clean'] = grammys_df['artist'].astype(str).str.lower().str.strip()
+        spotify_df['artists_clean'] = spotify_df['artists'].astype(str).str.lower().str.strip()
 
-        logger.info(f"Sample Spotify cleaned data:\n{spotify_df[['track_name', 'track_name_clean', 'artists', 'artists_clean']].head(5).to_string()}")
-        logger.info(f"Sample Grammy cleaned data:\n{grammys_df[['title', 'title_clean', 'artist', 'artist_clean']].head(5).to_string()}")
+        matched_rows = []
+        for idx, spotify_row in spotify_df.iterrows():
+            exact_match = grammys_df[
+                (grammys_df['title_clean'] == spotify_row['track_name_clean']) &
+                (grammys_df['artist_clean'] == spotify_row['artists_clean'])
+            ]
+            if not exact_match.empty:
+                matched_row = exact_match.iloc[0]
+            else:
+                matched_row = fuzzy_match_track_title(spotify_row, grammys_df)
+            
+            if matched_row is not None:
+                combined_row = spotify_row.to_dict()
+                combined_row.update(matched_row.to_dict())
+                matched_rows.append(combined_row)
+            else:
+                combined_row = spotify_row.to_dict()
+                for col in grammys_df.columns:
+                    if col not in combined_row:
+                        combined_row[col] = None
+                matched_rows.append(combined_row)
 
-        logger.info("Performing exact matching between Spotify and Grammy datasets on track name.")
-        df_merged = spotify_df.merge(
-            grammys_df,
-            how='left',
-            left_on='track_name_clean',
-            right_on='title_clean',
-            suffixes=('', '_grammy')
-        )
-        
-        df_merged['artist_match'] = df_merged.apply(
-            lambda row: row['artists_clean'] in row['artist_clean'] or row['artist_clean'] in row['artists_clean']
-            if pd.notna(row['artist_clean']) and pd.notna(row['artists_clean']) else False,
-            axis=1
-        )
-        exact_matches = df_merged['artist_match'].sum()
-        logger.info(f"Found {exact_matches} exact matches between Spotify and Grammy datasets (after artist filtering).")
-        logger.info(f"Exact match rate: {exact_matches / len(spotify_df) * 100:.2f}%")
-
-        grammy_cols = ['year', 'category', 'title', 'artist', 'is_winner']
-        df_merged.loc[~df_merged['artist_match'], grammy_cols] = pd.NA
-        df_merged = df_merged.drop(columns=['artist_match', 'title_clean', 'artist_clean'])
-
+        df_merged = pd.DataFrame(matched_rows)
         logger.info(f"After merging Spotify and Grammy data: {df_merged.shape[0]} rows and {df_merged.shape[1]} columns.")
 
         fill_columns = ["year", "title", "category"]
@@ -156,7 +144,7 @@ def merge_data(spotify_df: pd.DataFrame, grammys_df: pd.DataFrame, spotify_api_d
         fill_column = ["is_winner"]
         fill_null_values(df_merged, fill_column, False)
 
-        columns_drop = ["track_name_clean", "artists_clean"]
+        columns_drop = ["artist_clean", "title_clean", "track_name_clean", "artists_clean"]
         drop_columns(df_merged, columns_drop)
 
         if 'id' not in df_merged.columns:
@@ -170,18 +158,20 @@ def merge_data(spotify_df: pd.DataFrame, grammys_df: pd.DataFrame, spotify_api_d
             logger.info("Processing Spotify API data for merging")
             
             spotify_api_df = spotify_api_df.copy()
-            required_api_cols = ['track_id', 'artist_id', 'followers']
+            required_api_cols = ['track_id', 'artist_id', 'artist_name', 'followers']
             missing_api_cols = [col for col in required_api_cols if col not in spotify_api_df.columns]
             if missing_api_cols:
                 logger.warning(f"Missing required columns {missing_api_cols} in Spotify API DataFrame. Skipping API data merge.")
             elif len(track_ids) != len(spotify_api_df):
                 logger.warning(f"Mismatch between track_ids ({len(track_ids)}) and Spotify API DataFrame rows ({len(spotify_api_df)}). Skipping API data merge.")
             else:
-                df_merged = df_merged.merge(
-                    spotify_api_df[['track_id', 'artist_id', 'followers']],
-                    on='track_id',
-                    how='left'
-                )
+                track_to_artist_map = dict(zip(spotify_api_df['track_id'], spotify_api_df['artist_id']))
+                artist_to_followers_map = dict(zip(spotify_api_df['artist_id'], spotify_api_df['followers']))
+                artist_to_name_map = dict(zip(spotify_api_df['artist_id'], spotify_api_df['artist_name']))
+
+                df_merged['artist_id'] = df_merged['track_id'].map(track_to_artist_map)
+                df_merged['followers'] = df_merged['artist_id'].map(artist_to_followers_map)
+                df_merged['artist_name_api'] = df_merged['artist_id'].map(artist_to_name_map)
 
                 logger.info(f"After merging with Spotify API data: {df_merged.shape[0]} rows and {df_merged.shape[1]} columns.")
                 
@@ -189,6 +179,15 @@ def merge_data(spotify_df: pd.DataFrame, grammys_df: pd.DataFrame, spotify_api_d
                     df_merged['followers'] = df_merged['followers'].fillna(0)
                     logger.info(f"Followers column filled with 0 for {df_merged['followers'].isna().sum()} rows.")
                 
+                if 'artist_name_api' in df_merged.columns and 'artists' in df_merged.columns:
+                    df_merged['artist_match'] = df_merged['artists'].astype(str).str.lower() == df_merged['artist_name_api'].astype(str).str.lower()
+                    match_rate = df_merged['artist_match'].mean() * 100
+                    logger.info(f"Artist name match rate between Spotify dataset and API data: {match_rate:.2f}%")
+                    df_merged.drop(columns=['artist_match'], inplace=True)
+                
+                if 'artist_name_api' in df_merged.columns:
+                    df_merged.drop(columns=['artist_name_api'], inplace=True)
+
         if 'category' in df_merged.columns:
             num_matches = len(df_merged[df_merged['category'] != "Not applicable"])
             logger.info(f"Number of successful matches (Spotify tracks with Grammy data): {num_matches}")

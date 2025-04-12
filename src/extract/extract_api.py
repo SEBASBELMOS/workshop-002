@@ -1,94 +1,87 @@
 import logging
 import pandas as pd
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 import os
-import time
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 load_dotenv("/opt/airflow/.env")
 
-SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S %p")
 
-try:
-    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET
-    ))
-    logger.info("Spotify API authentication successful")
-except Exception as e:
-    logger.error(f"Failed to authenticate with Spotify API: {e}")
-    raise
-
-def extract_spotify_api_data(artist_names):
+def load_spotify_data(csv_path="/opt/airflow/data/spotify_artists_followers.csv"):
     """
-    Extract artist data (name and followers) from Spotify API for a list of artists, and save to the data folder.
+    Load artist data from a CSV file.
     
     Args:
-        artist_names (list): List of artist names to search for.
+        csv_path (str): Path to the CSV file.
     
     Returns:
-        pd.DataFrame: DataFrame containing artist data (name and followers).
+        pd.DataFrame: DataFrame with artist data (track_id, artist_id, artist_name, followers).
     """
-    logger.info(f"Extracting Spotify artist data for {len(artist_names)} artists")
-    artists_data = []
-    artist_ids = []
-    artist_name_mapping = {}
-    
-    for idx, artist_name in enumerate(artist_names):
-        try:
-            logger.info(f"Searching for artist {idx + 1}/{len(artist_names)}: {artist_name}")
-            artist_results = sp.search(q=f"artist:{artist_name}", type="artist", limit=1)
-            if not artist_results or not artist_results["artists"]["items"]:
-                logger.warning(f"No artist found for: {artist_name}")
-                artists_data.append({"artist_name": artist_name, "followers": None})
-                continue
-            
-            artist = artist_results["artists"]["items"][0]
-            artist_ids.append(artist["id"])
-            artist_name_mapping[artist["id"]] = artist["name"]
-            
-            time.sleep(0.05)
+    try:
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV file not found at {csv_path}")
         
-        except Exception as e:
-            logger.error(f"Error searching for artist {artist_name}: {e}")
-            artists_data.append({"artist_name": artist_name, "followers": None})
-            continue
-    
-    batch_size = 50
-    for i in range(0, len(artist_ids), batch_size):
-        batch_ids = artist_ids[i:i + batch_size]
-        try:
-            logger.info(f"Fetching details for artist batch {i // batch_size + 1}/{(len(artist_ids) // batch_size) + 1}")
-            artists_batch = sp.artists(batch_ids)
-            for artist in artists_batch["artists"]:
-                artist_data = {
-                    "artist_name": artist_name_mapping[artist["id"]],
-                    "followers": artist["followers"]["total"]
-                }
-                artists_data.append(artist_data)
-            
-            time.sleep(0.05)
+        df = pd.read_csv(csv_path)
+        logging.info(f"Loaded data from {csv_path} with {len(df)} rows")
         
-        except Exception as e:
-            logger.error(f"Error fetching artist batch: {e}")
-            for artist_id in batch_ids:
-                artists_data.append({"artist_name": artist_name_mapping.get(artist_id, "Unknown"), "followers": None})
-            continue
-    
-    artist_df = pd.DataFrame(artists_data)
-    logger.info(f"Extracted data for {len(artist_df)} artists from Spotify API")
-    logger.info(f"Spotify artist sample data:\n{artist_df.head(2).to_string()}")
+        logging.info(f"Columns in CSV: {df.columns.tolist()}")
+        
+        expected_columns = ["track_id", "artist_id", "artist_followers", "artist_popularity"]
+        if not all(col in df.columns for col in expected_columns):
+            raise ValueError(f"CSV file {csv_path} must contain columns: {expected_columns}")
+        
+        df = df.rename(columns={
+            "artist_followers": "followers"
+        })
+        
+        df["artist_name"] = None
+        
+        df = df[["track_id", "artist_id", "artist_name", "followers"]]
+        
+        return df
+    except Exception as e:
+        logging.error(f"Failed to load CSV {csv_path}: {e}")
+        raise
 
-    data_dir = "/opt/airflow/data"
-    os.makedirs(data_dir, exist_ok=True)
+def extract_spotify_api_data(track_ids, csv_path="/opt/airflow/data/spotify_artists_followers.csv"):
+    """
+    Extract artist data from a CSV file using a list of track IDs.
     
-    artist_file_path = os.path.join(data_dir, "spotify_artists_followers.csv")
-    artist_df.to_csv(artist_file_path, index=False)
-    logger.info(f"Saved artist data to {artist_file_path}")
-
-    return artist_df
+    Args:
+        track_ids (list): List of track IDs to process.
+        csv_path (str): Path to the CSV file.
+    
+    Returns:
+        pd.DataFrame: DataFrame with artist data (track_id, artist_id, artist_name, followers).
+    """
+    if not isinstance(track_ids, (list, tuple)):
+        raise TypeError(f"track_ids must be a list or tuple, got {type(track_ids)}: {track_ids}")
+    
+    logging.info(f"Extracting Spotify artist data for {len(track_ids)} track IDs from CSV at {csv_path}")
+    
+    try:
+        df = load_spotify_data(csv_path)
+        
+        df_filtered = df[df['track_id'].isin(track_ids)].copy()
+        logging.info(f"Found {len(df_filtered)} matching track IDs in the CSV")
+        
+        result_df = pd.DataFrame({'track_id': track_ids})
+        result_df = result_df.merge(
+            df_filtered,
+            on='track_id',
+            how='left'
+        )
+        
+        missing_tracks = result_df[result_df['artist_id'].isna()]['track_id'].tolist()
+        if missing_tracks:
+            logging.warning(f"No artist data found for {len(missing_tracks)} track IDs: {missing_tracks[:5]}...")
+        
+        expected_columns = ["track_id", "artist_id", "artist_name", "followers"]
+        result_df = result_df[expected_columns]
+        
+        logging.info(f"Returning data for {len(result_df)} tracks")
+        return result_df
+    
+    except Exception as e:
+        logging.error(f"Unexpected error in extract_spotify_api_data: {e}")
+        raise
